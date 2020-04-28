@@ -1,12 +1,29 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Scanner;
+
+/***************************************************************
+ * file: IsolationGame.java
+ * author: Marlene Barajas
+ * class: CS 4200.01 - Artificial Intelligence
+ *
+ * assignment: Project 4: Isolation Game
+ * date last modified: 4/27/2020
+ *
+ * purpose:
+ *
+ ****************************************************************/
 public class IsolationGame {
     //BOARD STATE VARS
-    private String[] rowLabels = {"A", "B", "C", "D", "E", "F", "G", "H"};
-    private String[] columnLabels = {" ", "1", "2", "3", "4", "5", "6", "7", "8"};
+    private static String[] rowLabels = {"A", "B", "C", "D", "E", "F", "G", "H"};
+    private static String[] columnLabels = {" ", "1", "2", "3", "4", "5", "6", "7", "8"};
+    private static String space = "       ";
     private int rowStart; private int rowEnd;
     //GAME LOGIC VARS
-    private char computer; private char opponent; private char currentPlayer; // two players
-    private long timeLimit = 20; private long elapsedTime;// time limit in seconds
+    private boolean computer;
+    private long startTime = 0; private long timeLimit = 20; private long elapsedTime; // time limit in seconds
     private ArrayList<BoardState> frontier; // holds the successors of current move
+    private ArrayList<String> moves = new ArrayList<>(); //holds all possible moves
     private int[] bestPossibleMove = new int[2]; // holds coordinates of best move
 
     /**
@@ -70,79 +87,143 @@ public class IsolationGame {
             loopCount++;
         }
     }
-    
+
     /**
      * This method prints out the current board states using the labels that are saved (to avoid having to use that
      * space in state space) within the class and the current board state.
      * @param board The current state of the board we want to print to the user.
      **/
     private void printBoard(String[] board){
+        int moveIndex;
         for(int i = 0; i < 9; i++){
             System.out.print(columnLabels[i] + " ");
         }
+        System.out.print(moves.get(0));
         System.out.println();
         for(int j = 0; j < 8; j++){
             System.out.print(rowLabels[j] + " ");
             rowStart = j*8;
             rowEnd = rowStart + 8;
-            for(int k = rowStart; k < rowEnd; k++){
+            for(int k = rowStart; k < rowEnd; k++) { //traverses through a row
                 System.out.print(board[k] + " ");
-                if(k+1==rowEnd) System.out.println();
+                if (k + 1 == rowEnd) { //if this is the end of the row
+                    moveIndex = j * 2 + 1;
+                    if (moves.size() > moveIndex) {
+                        System.out.print(space + moves.get(moveIndex));
+                        if (moves.size() - 1 > moveIndex) {
+                            System.out.print(space + moves.get(moveIndex + 1));
+                        }
+                    }
+                    System.out.println();
+                }
             }
         }
+        if(moves.size() > 17) printMoves();
     }
-    
-    private int minimax(BoardState root, int depth, boolean isMaximizingPlayer, double alpha, double beta){
-        int score = maxVal(root, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, 3);
-        BoardState currentNode = root;
-        if (depth==3) return score; // if node is a leaf node
 
-        return score;
-    }
-    
-    private int maxVal(BoardState root, double alpha, double beta, int depthLimit){
-
-    }
-    
-    private int minVal(BoardState root, double alpha, double beta, int depthLimit){
-        while(root.getChildren()!=null){
-
+    /**
+     * Prints the rest of the move list if it extends beyond the length of the board.
+     **/
+    private void printMoves(){
+        String longSpace = "                         ";
+        for(int i=17;i<moves.size();i++){
+            if(i%2==1) System.out.print(longSpace+moves.get(i)); //first of the current move
+            else System.out.print(space+moves.get(i)+"\n");
         }
     }
-    
+
+    /**
+     * Runs the alpha-beta pruning algorithm to get the best possible move for the computer player.
+     **/
+    private double alphaBeta(BoardState root, int depth, boolean isMaximizingPlayer, double alpha, double beta){
+        double maxEvaluation; double minEvaluation; int evaluation;
+        BoardState currentNode = root;
+        frontier = currentNode.getChildren();
+        if (depth==0) return root.evaluate(); // if node is root, algorithm is over
+
+        if(isMaximizingPlayer){
+            maxEvaluation = Double.NEGATIVE_INFINITY;
+            for(BoardState child : frontier){
+                evaluation = (int) alphaBeta(child, depth-1, false, alpha, beta);
+                child.setScore(evaluation); //this algorithm is in charge of setting scores of everything in frontier
+                maxEvaluation = Math.max(maxEvaluation, evaluation);
+                alpha = Math.max(alpha, evaluation);
+                if(beta <= alpha) break;
+            } return maxEvaluation;
+        }
+        else{
+            minEvaluation = Double.POSITIVE_INFINITY;
+            for(BoardState child : frontier){
+                evaluation = (int) alphaBeta(child, depth-1, true, alpha, beta);
+                child.setScore(evaluation); //this algorithm is in charge of setting scores of everything in frontier
+                minEvaluation = Math.min(minEvaluation, evaluation);
+                beta = Math.min(minEvaluation, evaluation);
+                if(beta<=alpha) break;
+            } return minEvaluation;
+        }
+    }
+
+    /**
+     * This method moves the computer's character around the board with the help of the alpha-beta algorithm deciding
+     * the best move to make.
+     **/
+    private void moveComputer(){
+        BoardState move;
+        startTime = System.nanoTime();
+        frontier.clear();
+        int score = 0; // = alphaBeta(root, depth);
+        //alphaBeta changes frontier to be computer's children
+        for(BoardState child : frontier){
+            if(child.getScore() == score){
+                move = child; //this is the best move (or the same score as one of them at least)
+                break;
+            }
+        }
+        //add best move to moves list, which needs a way to calculate what the LetterNumber descriptor off
+    }
+
     /**
      * This method runs the intro to the game and sets up who is the first player. This method leads to a call
      * to the method that runs the rest of the game.
      **/
     private void startGame(){
-        Scanner input = new Scanner(System.in); String first;
+        Scanner input = new Scanner(System.in); String first; String second;
         System.out.println("Welcome to the Isolation Game!\nWho goes first? Enter 'C' for computer or 'O' for opponent.");
-        first = input.next();
-        if(first.equals("C")){
-            setComputer('X');
-            setOpponent('O');
+
+        while(true) {
+            first = input.next();
+            if (first.equals("C") || first.equals("c")) {
+                first = "Computer"; computer = true;
+                second = "Opponent";
+                break;
+            } else if (first.equals("O") || first.equals("o")) {
+                first = "Opponent"; computer = false;
+                second = "Computer";
+                break;
+            }
+            System.out.println("Please enter a correct value.\nWho goes first? Enter 'C' for computer or 'O' for opponent.");
+        }
+        System.out.println(first+" will be X and "+second+" will be O.");
+        game();
+    }
+
+    /**
+     *
+     **/
+    private void game() {
+        BoardState board = new BoardState();
+        printBoard(board.getBoard());
+        moves.add("      Computer vs. Opponent"); //always needed at index 0
+        if(computer){ //if AI is first player
+            //run alpha-beta for AI to move X
+            //THEN, after, ask for user input to move O
         }
         else{
-            setComputer('O');
-            setOpponent('X');
+            //ask for user input to move X
+            //run alpha-beta for AI to move O
         }
     }
-    
-    private void game(char firstPlayer, char secondPlayer) {
-        BoardState board = new BoardState();
-        makeChildren(board, 'A');
-        printBoard(board.getBoard());
 
-    }
-    
-    private void setComputer(char xOrO){
-        computer = xOrO;
-    }
-    
-    private void setOpponent(char xOrO){
-        opponent = xOrO;
-    }
-    
     public static void main(String[] args){
         IsolationGame start = new IsolationGame();
         start.startGame();
