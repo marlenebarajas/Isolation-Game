@@ -16,12 +16,12 @@ public class IsolationGame {
     private int rowStart; private int rowEnd;
     private BoardState currentState; //shows the current game state
     //GAME LOGIC VARS
-    private boolean computer; //is the computer the first player?
+    private boolean computer = false; //is the computer the first player?
     private long startTime = 0; private long timeLimit = 20; private long elapsedTime; // time limit in seconds
     private ArrayList<BoardState> frontier; // holds the successors of current move
     private ArrayList<String> moves = new ArrayList<>(); //holds all possible moves
-    int round = 0;
-    int columnIndex; int rowIndex;
+    private int round = 0;
+    private int[] playerMove = {-1, -1};
 
     /**
      * This method prints out the current board states using the labels that are saved (to avoid having to use that
@@ -123,10 +123,8 @@ public class IsolationGame {
 
     /**
      * This method gets human player's input to move their X/O to another space.
-     * @param isFirst true if human is X
-     *                false if human is O
      */
-    private void movePlayer(boolean isFirst){
+    private void movePlayer(){
         String move; char row; char column; boolean valid;
         Scanner input = new Scanner(System.in);
         System.out.print("What space would you like to move to?");
@@ -180,9 +178,9 @@ public class IsolationGame {
      */
     private boolean checkValidity(String move){
         if(move.equals("--")) return false;
-        columnIndex = Character.getNumericValue(move.charAt(1));
+        int columnIndex = Character.getNumericValue(move.charAt(1)) - 1;
         char row = move.charAt(0);
-        rowIndex = 0;
+        int rowIndex = 0;
         switch(row){
             case 'A':
                 break;
@@ -201,7 +199,9 @@ public class IsolationGame {
             case 'H':
                 rowIndex = 7;
         }
-        String space = currentState.getSpace(columnIndex, rowIndex);
+        playerMove[0] = columnIndex;
+        playerMove[1] = rowIndex;
+        String space = currentState.getSpace(playerMove);
         return space.equals("-");
     }
 
@@ -209,8 +209,8 @@ public class IsolationGame {
      * This method changes the position of the human player's X/O in the current state.
      */
     private void makeMove(){
-        if(computer) currentState.changeCoordinates('O', columnIndex, rowIndex); // computer=true, human is O
-        else currentState.changeCoordinates('X', columnIndex, rowIndex); // computer=false, human is X
+        if(computer) currentState.changeCoordinates('O', playerMove); // computer=true, human is O
+        else currentState.changeCoordinates('X', playerMove); // computer=false, human is X
     }
 
     /**
@@ -242,7 +242,7 @@ public class IsolationGame {
         number = String.valueOf(coordinates[1]); //NUMBER
         result = moves.size();
         if(result%2==1){ //if there is an odd number of moves in move list, this added one will start a new count
-            result = result/2;
+            result = result/2 + 1;
             if (result<10){
                 moves.add(String.valueOf(0)+result+"."+" "+letter+number);
             }
@@ -258,13 +258,80 @@ public class IsolationGame {
     private void addMove(String move){
         int result = moves.size();
         if(result%2==1){ //if there is an odd number of moves in move list, this added one will start a new count
-            result = result/2;
+            result = result/2 + 1;
             if (result<10){
                 moves.add(String.valueOf(0)+result+"."+" "+move);
             }
             else moves.add(result+"."+" "+move);
         }
         else moves.add(move);
+    }
+
+    /**
+     * Checks if human/computer player is trapped by '#' spaces
+     * @param player X if checking if first player is trapped, O if checking if second player is trapped
+     * @return true if player is trapped, false if player is not
+     */
+    private boolean gameOver(char player){
+        int[] coordinates;
+        switch(player){
+            case 'X':
+                coordinates = currentState.getFirstPlayer();
+            case 'O':
+                coordinates = currentState.getSecondPlayer();
+                break;
+            default:
+                coordinates = new int[2];
+        }
+        boolean leftWall = (coordinates[0]==0); // true if next to left wall, false if not
+        boolean topWall = (coordinates[1]==0); // true if next to top wall, false if not
+        boolean rightWall = (coordinates[0]==7); // true if next to right wall, false if not
+        boolean bottomWall = (coordinates[1]==7); // true if next to bottom wall, false if not
+        String space = currentState.getSpace(coordinates);
+        if(!space.equals("-")) return false;
+        if(leftWall){ // if we're not at a left wall, we can check these spaces
+            coordinates[0]--;
+            space = currentState.getSpace(coordinates);
+            if(!space.equals("-")) return false;
+            if(topWall){
+                coordinates[1]--;
+                space = currentState.getSpace(coordinates);
+                if(!space.equals("-")) return false;
+            }
+            if(bottomWall){
+                coordinates[1] += 2;
+                space = currentState.getSpace(coordinates);
+                if(!space.equals("-")) return false;
+            }
+        }
+        if(rightWall){
+            coordinates[0] += 2; // COULD BE AN ERROR HERE?
+            coordinates[1]--;
+            space = currentState.getSpace(coordinates);
+            if(!space.equals("-")) return false;
+            if(topWall){
+                coordinates[1]--;
+                space = currentState.getSpace(coordinates);
+                if(!space.equals("-")) return false;
+            }
+            if(bottomWall){
+                coordinates[1] += 2;
+                space = currentState.getSpace(coordinates);
+                if(!space.equals("-")) return false;
+            }
+        }
+        if(topWall){
+            coordinates[0]--;
+            coordinates[1] -= 2;
+            space = currentState.getSpace(coordinates);
+            if(!space.equals("-")) return false;
+        }
+        if(bottomWall){
+            coordinates[1] += 2;
+            space = currentState.getSpace(coordinates);
+            if(!space.equals("-")) return false;
+        }
+        return false;
     }
 
     /**
@@ -278,12 +345,16 @@ public class IsolationGame {
         while(true) {
             first = input.next();
             if (first.equals("C") || first.equals("c")) {
-                first = "Computer"; computer = true;
+                first = "Computer";
+                computer = true;
                 second = "Opponent";
+                moves.add("      Computer vs. Opponent"); //always needed at index 0
                 break;
             } else if (first.equals("O") || first.equals("o")) {
-                first = "Opponent"; computer = false;
+                first = "Opponent";
+                this.computer = false;
                 second = "Computer";
+                moves.add("      Opponent vs. Computer"); //always needed at index 0
                 break;
             }
             System.out.println("Please enter a correct value.\nWho goes first? Enter 'C' for computer or 'O' for opponent.");
@@ -296,28 +367,27 @@ public class IsolationGame {
      *
      **/
     private void game() {
-        //VARIABLE SET UP
         currentState = new BoardState();
-        boolean computerTurn = computer;
-        //EXTRA SET UP
-        moves.add("      Computer vs. Opponent"); //always needed at index 0
         printBoard();
-
         while(true){
-            if(computerTurn){
-                frontier = currentState.makeChildren(computer); //THIS CHANGES THE FRONTIER FOR EVERY METHOD
+            if(computer){
+                frontier = currentState.makeChildren(true); //THIS CHANGES THE FRONTIER FOR EVERY METHOD
                 moveComputer(); //method uses new frontier to change currentState, and computer moves first
                 printBoard();
-                movePlayer(false); //human moves second
+                if(gameOver('X')) break; //CHECKS IF COMPUTER WON
+                movePlayer(); //human moves second
                 printBoard();
-                round++;
+                if(gameOver('O')) break; //CHECKS IF HUMAN WON
+                round++; //if round is over a certain threshold, we can increase the depth we search
             }
             else{
-                movePlayer(true); //human moves first
+                movePlayer(); //human moves first
                 printBoard();
+                if(gameOver('X')) break; //CHECKS IF HUMAN WON
                 frontier = currentState.makeChildren(computer);
                 moveComputer(); //computer moves second
                 printBoard();
+                if(gameOver('O')) break; //CHECKS IF COMPUTER WON
                 round++;
             }
         }
