@@ -1,17 +1,12 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
-
 /***************************************************************
  * file: IsolationGame.java
  * author: Marlene Barajas
  * class: CS 4200.01 - Artificial Intelligence
  *
  * assignment: Project 4: Isolation Game
- * date last modified: 4/27/2020
- *
- * purpose:
- *
+ * date last modified: 4/28/2020
  ****************************************************************/
 public class IsolationGame {
     //BOARD STATE VARS
@@ -19,81 +14,21 @@ public class IsolationGame {
     private static String[] columnLabels = {" ", "1", "2", "3", "4", "5", "6", "7", "8"};
     private static String space = "       ";
     private int rowStart; private int rowEnd;
+    private BoardState currentState; //shows the current game state
     //GAME LOGIC VARS
-    private boolean computer;
+    private boolean computer; //is the computer the first player?
     private long startTime = 0; private long timeLimit = 20; private long elapsedTime; // time limit in seconds
     private ArrayList<BoardState> frontier; // holds the successors of current move
     private ArrayList<String> moves = new ArrayList<>(); //holds all possible moves
-    private int[] bestPossibleMove = new int[2]; // holds coordinates of best move
-
-    /**
-     * @param root is the Board state that children will be derived from.
-     * @param player
-     **/
-    public void makeChildren(BoardState root, char player){
-        int[] startCoordinates; int start; int end; int loopCount;
-        int x = 0; int y = 0;
-        String[] childState = Arrays.copyOf(root.getBoard(), root.getBoard().length);
-        switch(player){
-            case 'X':
-                startCoordinates = root.getFirstPlayer();
-                x = startCoordinates[0];
-                y = startCoordinates[1];
-            case 'O':
-                startCoordinates = root.getSecondPlayer();
-                x = startCoordinates[0];
-                y = startCoordinates[1];
-        }
-        // POSSIBLE MOVES IN ROW
-        start = y*8; end = ((y+1)*7)+y; loopCount = 0;
-        for(int i = start; i<end; i++){
-            if(root.getBoard()[i].equals("-")){
-                BoardState child = new BoardState(childState, root.getDepth()+1, root.getFirstPlayer(), root.getSecondPlayer(), root);
-                child.changeCoordinates(player, x, y+loopCount);
-                root.addChild(child);
-            }
-            loopCount++;
-        }
-        // POSSIBLE MOVES IN COLUMN
-        start = y; end = 48 + y;  loopCount = 0;
-        for(int i = start; i<end; i+=8){
-            if(root.getBoard()[i].equals("-")){
-                BoardState child = new BoardState(childState, root.getDepth()+1, root.getFirstPlayer(), root.getSecondPlayer(), root);
-                child.changeCoordinates(player, x+loopCount, y);
-                root.addChild(child);
-            }
-            loopCount++;
-        }
-        // POSSIBLE MOVES IN POSITIVE DIAGONAL
-        start = x+y; end = start*8;  loopCount = 0;
-        for(int i = start; i<end; i+=7){
-            if(root.getBoard()[i].equals("-")){
-                BoardState child = new BoardState(childState, root.getDepth()+1, root.getFirstPlayer(), root.getSecondPlayer(), root);
-                child.changeCoordinates(player, x-loopCount, y+loopCount);
-                root.addChild(child);
-            }
-            loopCount++;
-        }
-        // POSSIBLE MOVES IN NEGATIVE DIAGONAL
-        end = x-y; loopCount = 0;
-        if(end>=0) start = 63-(end*8);
-        else start = 63-end;
-        for(int i = start; i>7; i-=9){
-            if(root.getBoard()[i].equals("-")){
-                BoardState child = new BoardState(childState, root.getDepth()+1, root.getFirstPlayer(), root.getSecondPlayer(), root);
-                child.changeCoordinates(player, x-loopCount, y-loopCount);
-                root.addChild(child);
-            }
-            loopCount++;
-        }
-    }
+    int round = 0;
+    int columnIndex; int rowIndex;
 
     /**
      * This method prints out the current board states using the labels that are saved (to avoid having to use that
      * space in state space) within the class and the current board state.
-     * @param board The current state of the board we want to print to the user.
      **/
-    private void printBoard(String[] board){
+    private void printBoard(){
+        String[] board = currentState.getBoard();
         int moveIndex;
         for(int i = 0; i < 9; i++){
             System.out.print(columnLabels[i] + " ");
@@ -138,7 +73,7 @@ public class IsolationGame {
     private double alphaBeta(BoardState root, int depth, boolean isMaximizingPlayer, double alpha, double beta){
         double maxEvaluation; double minEvaluation; int evaluation;
         BoardState currentNode = root;
-        frontier = currentNode.getChildren();
+        currentNode.makeChildren(isMaximizingPlayer); //MIGHT BE INCORRECT USE
         if (depth==0) return root.evaluate(); // if node is root, algorithm is over
 
         if(isMaximizingPlayer){
@@ -164,13 +99,14 @@ public class IsolationGame {
     }
 
     /**
+     * NEEDS TO RESULT IN A CHANGE TO currentState TO BE RETURNED TO GAME
      * This method moves the computer's character around the board with the help of the alpha-beta algorithm deciding
      * the best move to make.
      **/
     private void moveComputer(){
-        BoardState move;
+        int[] coordinates;
+        BoardState move = currentState;
         startTime = System.nanoTime();
-        frontier.clear();
         int score = 0; // = alphaBeta(root, depth);
         //alphaBeta changes frontier to be computer's children
         for(BoardState child : frontier){
@@ -179,7 +115,156 @@ public class IsolationGame {
                 break;
             }
         }
-        //add best move to moves list, which needs a way to calculate what the LetterNumber descriptor off
+        //add best move to moves list, which needs a method to calculate what the LetterNumber descriptor of move is
+        if(computer) coordinates = move.getFirstPlayer(); //if computer is X player
+        else coordinates = move.getSecondPlayer(); // or if computer is O player instead
+        addMove(coordinates);
+    }
+
+    /**
+     * This method gets human player's input to move their X/O to another space.
+     * @param isFirst true if human is X
+     *                false if human is O
+     */
+    private void movePlayer(boolean isFirst){
+        String move; char row; char column; boolean valid;
+        Scanner input = new Scanner(System.in);
+        System.out.print("What space would you like to move to?");
+        while(true){
+            move = input.next();
+            row = move.charAt(0);
+            column = move.charAt(1);
+            switch(row){
+                case 'A':
+                case 'F':
+                case 'B':
+                case 'C':
+                case 'D':
+                case 'E':
+                case 'G':
+                case 'H':
+                    break;
+                default:
+                    row = '-';
+                    break;
+            }
+            switch(column){
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                    break;
+                default:
+                    column = '-';
+                    break;
+            }
+            move = String.valueOf(row)+ column;
+            valid = checkValidity(move);
+            if(valid){
+                makeMove();
+                addMove(move);
+                break;
+            }
+            System.out.print("This move is not valid, please try again: ");
+        }
+    }
+
+    /**
+     * This method checks whether a space (such as "D3") is empty, and therefore available for human player to move to.
+     * @param move String that represents a space on the board
+     * @return true if the space is empty("-"), false is otherwise
+     */
+    private boolean checkValidity(String move){
+        if(move.equals("--")) return false;
+        columnIndex = Character.getNumericValue(move.charAt(1));
+        char row = move.charAt(0);
+        rowIndex = 0;
+        switch(row){
+            case 'A':
+                break;
+            case 'B':
+                rowIndex = 1;
+            case 'C':
+                rowIndex = 2;
+            case 'D':
+                rowIndex = 3;
+            case 'E':
+                rowIndex = 4;
+            case 'F':
+                rowIndex = 5;
+            case 'G':
+                rowIndex = 6;
+            case 'H':
+                rowIndex = 7;
+        }
+        String space = currentState.getSpace(columnIndex, rowIndex);
+        return space.equals("-");
+    }
+
+    /**
+     * This method changes the position of the human player's X/O in the current state.
+     */
+    private void makeMove(){
+        if(computer) currentState.changeCoordinates('O', columnIndex, rowIndex); // computer=true, human is O
+        else currentState.changeCoordinates('X', columnIndex, rowIndex); // computer=false, human is X
+    }
+
+    /**
+     * This method translates a move from an index to a String that the user will understand (ex. "E5"). It then adds it
+     * to the moves list.
+     * @param coordinates where X or O is
+     **/
+    private void addMove(int[] coordinates){
+        String letter = "A"; String number; int coordinate; int result;
+        coordinate = coordinates[0];
+        switch(coordinate){ //LETTER
+            case 0:
+                letter = "A";
+            case 1:
+                letter = "B";
+            case 2:
+                letter = "C";
+            case 3:
+                letter = "D";
+            case 4:
+                letter = "E";
+            case 5:
+                letter = "F";
+            case 6:
+                letter = "G";
+            case 7:
+                letter = "H";
+        }
+        number = String.valueOf(coordinates[1]); //NUMBER
+        result = moves.size();
+        if(result%2==1){ //if there is an odd number of moves in move list, this added one will start a new count
+            result = result/2;
+            if (result<10){
+                moves.add(String.valueOf(0)+result+"."+" "+letter+number);
+            }
+            else moves.add(result+"."+" "+letter+number);
+        }
+        else moves.add(letter+number);
+    }
+
+    /**
+     * This method adds a move to the move list without necessitating a translation from coordinate indices to a String.
+     * @param move String with a valid move
+     */
+    private void addMove(String move){
+        int result = moves.size();
+        if(result%2==1){ //if there is an odd number of moves in move list, this added one will start a new count
+            result = result/2;
+            if (result<10){
+                moves.add(String.valueOf(0)+result+"."+" "+move);
+            }
+            else moves.add(result+"."+" "+move);
+        }
+        else moves.add(move);
     }
 
     /**
@@ -211,16 +296,30 @@ public class IsolationGame {
      *
      **/
     private void game() {
-        BoardState board = new BoardState();
-        printBoard(board.getBoard());
+        //VARIABLE SET UP
+        currentState = new BoardState();
+        boolean computerTurn = computer;
+        //EXTRA SET UP
         moves.add("      Computer vs. Opponent"); //always needed at index 0
-        if(computer){ //if AI is first player
-            //run alpha-beta for AI to move X
-            //THEN, after, ask for user input to move O
-        }
-        else{
-            //ask for user input to move X
-            //run alpha-beta for AI to move O
+        printBoard();
+
+        while(true){
+            if(computerTurn){
+                frontier = currentState.makeChildren(computer); //THIS CHANGES THE FRONTIER FOR EVERY METHOD
+                moveComputer(); //method uses new frontier to change currentState, and computer moves first
+                printBoard();
+                movePlayer(false); //human moves second
+                printBoard();
+                round++;
+            }
+            else{
+                movePlayer(true); //human moves first
+                printBoard();
+                frontier = currentState.makeChildren(computer);
+                moveComputer(); //computer moves second
+                printBoard();
+                round++;
+            }
         }
     }
 
