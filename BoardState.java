@@ -91,7 +91,6 @@ public class BoardState {
         int x = coordinates[0];
         int y = coordinates[1];
         changeCoordinates(player, x, y);
-
     }
 
     void setDepth(int depth) {
@@ -121,6 +120,7 @@ public class BoardState {
      * This method populates the frontier with the children of the current board state.
      * @param player True if computer is playing X
      *               False if computer is playing O
+     * @return ArrayList<BoardState> that holds any possible move for either X or O (depending on parameter)
      **/
     public ArrayList<BoardState> makeChildren(boolean player) {
         ArrayList<BoardState> frontier = new ArrayList<>();
@@ -128,7 +128,6 @@ public class BoardState {
         char xOrO;
         int x = 0;
         int y = 0;
-        String[] childState = Arrays.copyOf(getBoard(), getBoard().length);
         if (player) { //computer is X
             xOrO = 'X';
             startCoordinates = getFirstPlayer();
@@ -140,102 +139,125 @@ public class BoardState {
             x = startCoordinates[0];
             y = startCoordinates[1];
         }
-        int start = (y*8) + x;
+        int index = (y*8) + x;
         // POSSIBLE MOVES IN ROW - LEFT OF PLAYER
-        int end = (start/8) * 8;
-        int loopCount = 0;
-        for (int i=start; i>end; i--) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                child.changeCoordinates(xOrO, x, y + loopCount);
-                frontier.add(child);
+        int start = index-1;
+        int end = (index/8) * 8;
+        int loopCount = 1;
+        if(x!=0){ // if there are moves to the left
+            for (int i=start; i>=end; i--) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x - loopCount, y);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN ROW - RIGHT OF PLAYER
-        end = start+x;
-        loopCount = 0;
-        for (int i = start; i<end; i++) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                child.changeCoordinates(xOrO, x, y + loopCount);
-                frontier.add(child);
+        start = index+1;
+        end = index+(7-x);
+        loopCount = 1;
+        if(x!=7){ //if there are moves to the right
+            for (int i = start; i<=end; i++) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x + loopCount, y);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN COLUMN - ABOVE PLAYER
+        start = index-8;
         end = x-1;
-        loopCount = 0;
-        for (int i = start; i > end; i -= 8) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                child.changeCoordinates(xOrO, x + loopCount, y);
-                frontier.add(child);
+        loopCount = 1;
+        if(y!=0){ //if there are moves above
+            for (int i = start; i >= end; i -= 8) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x, y - loopCount);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN COLUMN - BELOW PLAYER
-        end = ((7-y)*8) + start;
-        loopCount = 0;
-        for (int i=start; i<end; i += 8) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                child.changeCoordinates(xOrO, x + loopCount, y);
-                frontier.add(child);
+        start = index+8;
+        end = ((7-y)*8) + index;
+        loopCount = 1;
+        if(y!=7){
+            for (int i=start; i<=end; i += 8) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x, y + loopCount);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - RIGHT OF PLAYER
-        end = start-((7-x)*7);
-        loopCount = 0;
-        for (int i=start; i>end; i-=7) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                child.changeCoordinates(xOrO, x - loopCount, y + loopCount);
-                frontier.add(child);
+        start = index-7;
+        end = index+((7-x)*7);
+        loopCount = 1;
+        if(x!=7 && y!=0){ // if there are moves to the right
+            for (int i=start; i>=end; i-=7) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x + loopCount, y - loopCount);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - LEFT OF PLAYER
-        end = start+((7-y)*7);
-        loopCount = 0;
-        for (int i=start; i<end;i+=7) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                child.changeCoordinates(xOrO, x - loopCount, y + loopCount);
-                frontier.add(child);
+        start = index+7;
+        end = index+((7-y)*7);
+        loopCount = 1;
+        if(x!=0 && y!=7){
+            for (int i=start; i<=end;i+=7) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x - loopCount, y + loopCount);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN NEGATIVE DIAGONAL - RIGHT OF PLAYER
+        start = index+9;
         end = 63 - ((x-y) * 8);
-        loopCount = 0;
-        for (int i = start; i < end; i+=9) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                child.changeCoordinates(xOrO, x + loopCount, y + loopCount);
-                frontier.add(child);
+        loopCount = 1;
+        if(x!=7 && y!=7){
+            for (int i = start; i <= end; i+=9) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x + loopCount, y + loopCount);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN NEGATIVE DIAGONAL - LEFT OF PLAYER
-        start = (y*8) + x;
-        loopCount = 0;
-        for (int i = start; i > 9; i-=9) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                child.changeCoordinates(xOrO, x - loopCount, y - loopCount);
-                frontier.add(child);
+        start = index-9;
+        loopCount = 1;
+        if(x!=0 && y!=0){
+            for (int i = start; i >= 9; i-=9) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(getBoard(), getDepth()+1, getFirstPlayer(), getSecondPlayer(), this);
+                    child.changeCoordinates(xOrO, x - loopCount, y - loopCount);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         return frontier;
     }
@@ -252,96 +274,117 @@ public class BoardState {
         int[] startCoordinates = getFirstPlayer();
         int x = startCoordinates[0];
         int y = startCoordinates[1];
-        String[] childState = Arrays.copyOf(getBoard(), getBoard().length);
-
-        int start = (y*8) + x;
+        int index = (y*8) + x;
         // POSSIBLE MOVES IN ROW - LEFT OF PLAYER
-        int end = (start/8) * 8;
-        int loopCount = 0;
-        for (int i=start; i>end; i--) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                frontier.add(child);
+        int start = index-1;
+        int end = (index/8) * 8;
+        int loopCount = 1;
+        if(x!=0){ // if there are moves to the left
+            for (int i=start; i>=end; i--) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN ROW - RIGHT OF PLAYER
-        end = start+x;
-        loopCount = 0;
-        for (int i = start; i<end; i++) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                frontier.add(child);
+        start = index+1;
+        end = index+(7-x);
+        loopCount = 1;
+        if(x!=7){ //if there are moves to the right
+            for (int i = start; i<=end; i++) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN COLUMN - ABOVE PLAYER
+        start = index-8;
         end = x-1;
-        loopCount = 0;
-        for (int i = start; i > end; i -= 8) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                frontier.add(child);
+        loopCount = 1;
+        if(y!=0){ //if there are moves above
+            for (int i = start; i >= end; i -= 8) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN COLUMN - BELOW PLAYER
-        end = ((7-y)*8) + start;
-        loopCount = 0;
-        for (int i=start; i<end; i += 8) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, depth + 1, firstPlayer, secondPlayer, this);
-                frontier.add(child);
+        start = index+8;
+        end = ((7-y)*8) + index;
+        loopCount = 1;
+        if(y!=7){
+            for (int i=start; i<=end; i += 8) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - RIGHT OF PLAYER
-        end = start-((7-x)*7);
-        loopCount = 0;
-        for (int i=start; i>end; i-=7) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                frontier.add(child);
+        start = index-7;
+        end = index+((7-x)*7);
+        loopCount = 1;
+        if(x!=7 && y!=0){ // if there are moves to the right
+            for (int i=start; i>=end; i-=7) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - LEFT OF PLAYER
-        end = start+((7-y)*7);
-        loopCount = 0;
-        for (int i=start; i<end;i+=7) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                frontier.add(child);
+        start = index+7;
+        end = index+((7-y)*7);
+        loopCount = 1;
+        if(x!=0 && y!=7){
+            for (int i=start; i<=end;i+=7) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN NEGATIVE DIAGONAL - RIGHT OF PLAYER
+        start = index+9;
         end = 63 - ((x-y) * 8);
-        loopCount = 0;
-        for (int i = start; i < end; i+=9) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                frontier.add(child);
+        loopCount = 1;
+        if(x!=7 && y!=7){
+            for (int i = start; i <= end; i+=9) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         // POSSIBLE MOVES IN NEGATIVE DIAGONAL - LEFT OF PLAYER
-        start = (y*8) + x;
-        loopCount = 0;
-        for (int i = start; i > 9; i-=9) {
-            if (getBoard()[i].equals("-")) {
-                BoardState child = new BoardState(childState, getDepth() + 1, getFirstPlayer(), getSecondPlayer(), this);
-                frontier.add(child);
+        start = index-9;
+        loopCount = 1;
+        if(x!=0 && y!=0){
+            for (int i = start; i >= 9; i-=9) {
+                if (getBoard()[i].equals("-")) {
+                    BoardState child = new BoardState(state, depth + 1, firstPlayer, secondPlayer, this);
+                    frontier.add(child);
+                }
+                else break; //if the next space isn't free, then the rest of this path isn't free
+                loopCount++;
             }
-            else break; //if the next space isn't free, then the rest of this path isn't free
-            loopCount++;
         }
         return frontier;
     }
