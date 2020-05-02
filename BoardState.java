@@ -29,12 +29,20 @@ public class BoardState {
         this.secondPlayer = bCoordinates;
     }
 
-    BoardState(BoardState parent, Point move) {
+    BoardState(BoardState parent, Point move, char xOrO) {
         this.state = Arrays.copyOf(parent.getBoard(),parent.getBoard().length);
         this.firstPlayer = new int[]{0, 0};
         this.secondPlayer = new int[]{7, 7};
         this.score = evaluate(move);
         this.depth = parent.getDepth() + 1;
+    }
+
+    void setFirstPlayer(int[] coordinates){
+        this.firstPlayer = coordinates;
+    }
+
+    void setSecondPlayer(int[] coordinates){
+        this.secondPlayer = coordinates;
     }
 
     int getScore(){
@@ -75,14 +83,14 @@ public class BoardState {
         int[] newCoordinates = {x, y};
         switch (player) {
             case 'X':
-                oldPlayerIndex = (getFirstPlayer()[1] * 8) + getFirstPlayer()[0];
-                setFirstPlayer(newCoordinates);
+                oldPlayerIndex = (this.getFirstPlayer()[1] * 8) + this.getFirstPlayer()[0];
+                this.setFirstPlayer(newCoordinates);
                 this.state[oldPlayerIndex] = "#";
                 this.state[newPlayerIndex] = "X";
                 break;
             case 'O':
-                oldPlayerIndex = (getSecondPlayer()[1] * 8) + getSecondPlayer()[0];
-                setSecondPlayer(newCoordinates);
+                oldPlayerIndex = (this.getSecondPlayer()[1] * 8) + this.getSecondPlayer()[0];
+                this.setSecondPlayer(newCoordinates);
                 this.state[oldPlayerIndex] = "#";
                 this.state[newPlayerIndex] = "O";
                 break;
@@ -92,15 +100,7 @@ public class BoardState {
     void changeCoordinates(char player, int[] coordinates) {
         int x = coordinates[0];
         int y = coordinates[1];
-        changeCoordinates(player, x, y);
-    }
-
-    private void setFirstPlayer(int[] coordinates) {
-        this.firstPlayer = coordinates;
-    }
-
-    private void setSecondPlayer(int[] coordinates) {
-        this.secondPlayer = coordinates;
+        this.changeCoordinates(player, x, y);
     }
 
     /**
@@ -163,9 +163,10 @@ public class BoardState {
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - RIGHT OF PLAYER
         start = index-7;
-        end = index+((7-x)*7);
+        end = index-((7-x)*7);
         if(x!=7 && y!=0){ // if there are moves to the right
-            for (int i=start; i>=end; i-=7) {
+            for (int i=start; i>end; i-=7) {
+                if(i<8) break;
                 if (getBoard()[i].equals("-")) {
                     if(i==start) multiplier++; // empty spots immediately surrounding are worth 3 times as much
                     score++;
@@ -175,9 +176,10 @@ public class BoardState {
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - LEFT OF PLAYER
         start = index+7;
-        end = index+((7-y)*7);
+        end = index+(x*7);
         if(x!=0 && y!=7){
-            for (int i=start; i<=end;i+=7) {
+            for (int i=start; i<end;i+=7) {
+                if(i>55) break;
                 if (getBoard()[i].equals("-")) {
                     if(i==start) multiplier++; // empty spots immediately surrounding are worth 3 times as much
                     score++;
@@ -190,6 +192,7 @@ public class BoardState {
         end = 63 - ((7-y)*9);
         if(x!=7 && y!=7){
             for (int i = start; i <= end; i+=9) {
+                if(i>55) break;
                 if (getBoard()[i].equals("-")) {
                     if(i==start) multiplier++; // empty spots immediately surrounding are worth 3 times as much
                     score++;
@@ -201,6 +204,7 @@ public class BoardState {
         start = index-9;
         if(x!=0 && y!=0){
             for (int i = start; i >= 9; i-=9) {
+                if(i<8) break;
                 if (getBoard()[i].equals("-")) {
                     if(i==start) multiplier++; // empty spots immediately surrounding are worth 3 times as much
                     score++;
@@ -217,7 +221,7 @@ public class BoardState {
      *               False if computer is playing O
      * @return ArrayList<Point> that holds any possible move for either X or O (depending on parameter)
      **/
-    public PriorityQueue<Point> makeChildren(boolean player) {
+    PriorityQueue<Point> makeChildren(boolean player) {
         PriorityQueue<Point> frontier = new PriorityQueue<>(new StateComparator());
         int[] startCoordinates;
         int x = 0;
@@ -286,10 +290,11 @@ public class BoardState {
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - RIGHT OF PLAYER
         start = index-7;
-        end = index+((7-x)*7);
+        end = index-((7-x)*7);
         loopCount = 1;
         if(x!=7 && y!=0){ // if there are moves to the right
-            for (int i=start; i>=end; i-=7) {
+            for (int i=start; i>end; i-=7) {
+                if(i<8) break;
                 if (getBoard()[i].equals("-")) {
                     frontier.add(new Point(x+loopCount, y-loopCount));
                 }
@@ -299,10 +304,11 @@ public class BoardState {
         }
         // POSSIBLE MOVES IN POSITIVE DIAGONAL - LEFT OF PLAYER
         start = index+7;
-        end = index+((7-y)*7);
+        end = index+(x*7);
         loopCount = 1;
         if(x!=0 && y!=7){
-            for (int i=start; i<=end;i+=7) {
+            for (int i=start; i<end;i+=7) {
+                if(i>55) break;
                 if (getBoard()[i].equals("-")) {
                     frontier.add(new Point(x-loopCount, y+loopCount));
                 }
@@ -316,6 +322,7 @@ public class BoardState {
         loopCount = 1;
         if(x!=7 && y!=7){
             for (int i = start; i <= end; i+=9) {
+                if(i>55) break;
                 if (getBoard()[i].equals("-")) {
                     frontier.add(new Point(x+loopCount, y+loopCount));
                 }
@@ -328,6 +335,7 @@ public class BoardState {
         loopCount = 1;
         if(x!=0 && y!=0){
             for (int i = start; i >= 9; i-=9) {
+                if(i<8) break;
                 if (getBoard()[i].equals("-")) {
                     frontier.add(new Point(x-loopCount, y-loopCount));
                 }
