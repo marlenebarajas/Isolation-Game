@@ -10,7 +10,7 @@ import java.util.Scanner;
  * class: CS 4200.01 - Artificial Intelligence
  *
  * assignment: Project 4: Isolation Game
- * date last modified: 4/28/2020
+ * date last modified: 5/02/2020
  ****************************************************************/
 
 public class IsolationGame {
@@ -18,7 +18,6 @@ public class IsolationGame {
     private static String[] rowLabels = {"A", "B", "C", "D", "E", "F", "G", "H"};
     private static String[] columnLabels = {" ", "1", "2", "3", "4", "5", "6", "7", "8"};
     private static String space = "       ";
-    private int rowStart; private int rowEnd;
     //GAME LOGIC VARS
     private boolean computer = false; //is the computer the first player?
     private ArrayList<String> moves = new ArrayList<>();
@@ -28,6 +27,7 @@ public class IsolationGame {
     /**
      * This method prints out the current board states using the labels that are saved (to avoid having to use that
      * space in state space) within the class and the current board state.
+     * @param currentState the current game state
      **/
     private void printBoard(BoardState currentState){
         String[] board = currentState.getBoard();
@@ -39,8 +39,8 @@ public class IsolationGame {
         System.out.println();
         for(int j = 0; j < 8; j++){
             System.out.print(rowLabels[j] + " ");
-            rowStart = j*8;
-            rowEnd = rowStart + 8;
+            int rowStart = j * 8;
+            int rowEnd = rowStart + 8;
             for(int k = rowStart; k < rowEnd; k++) { //traverses through a row
                 System.out.print(board[k] + " ");
                 if (k + 1 == rowEnd) { //if this is the end of the row
@@ -71,6 +71,8 @@ public class IsolationGame {
 
     /**
      * Runs the alpha-beta pruning algorithm to get the best possible move for the computer player.
+     * @param root BoardState that is always currentState
+     * @param depth the depth limit for this alpha-beta pruning algorithm
      **/
     private int alphaBeta(BoardState root, int depth){
         int negativeInfinity = (int) Double.NEGATIVE_INFINITY;
@@ -81,13 +83,18 @@ public class IsolationGame {
     /**
      * maxValue() makes children out of the possible moves that the computer can make and is the maximizing portion of
      * the alpha-beta pruning algorithm.
+     * @param root BoardState of the current child that is maximizing in alpha-beta pruning
+     * @param alpha maximum value in the algorithm so far
+     * @param beta minimum value in the algorithm so far
+     * @param depth the depth limit for this alpha-beta pruning algorithm
+     * @return int for the score/maximum value at this point in alpha-beta pruning algorithm
      **/
     private int maxValue(BoardState root, int alpha, int beta, int depth){
         char xOrO;
         Point move;
         int score = -1;
         PriorityQueue<Point> frontier;
-        if(computer) xOrO = 'X'; //decided whether computer player is X or O
+        if(computer) xOrO = 'X';
         else xOrO = 'O';
 
         if(root.getDepth()>=depth){//if reached depth limit
@@ -96,7 +103,10 @@ public class IsolationGame {
         frontier = root.makeChildren(computer); //COORDINATES OF EVERY POSSIBLE MOVE
         for(int i=0;i<frontier.size();i++){ //now A's children must be queried to get the minimum value of its children
             move = frontier.poll();
-            BoardState child = new BoardState(root, move); //creating child with new coordinate position of computer
+            BoardState child = new BoardState(root, move, xOrO); //creating child with new coordinate position of computer
+            child.setFirstPlayer(root.getFirstPlayer());
+            child.setSecondPlayer(root.getSecondPlayer());
+            child.changeCoordinates(xOrO, (int) move.getX(), (int) move.getY());
             score = Math.max(score, minValue(child, alpha, beta, depth)); //getting the minimum valued move that opponent human player can make
             if(score>=beta){
                 return score;
@@ -109,6 +119,11 @@ public class IsolationGame {
     /**
      * minValue() makes children out of the possible moves that the computer can make and is the minimizing portion of
      * the alpha-beta pruning algorithm.
+     * @param root BoardState of the current child that is maximizing in alpha-beta pruning
+     * @param alpha maximum value in the algorithm so far
+     * @param beta minimum value in the algorithm so far
+     * @param depth the depth limit for this alpha-beta pruning algorithm
+     * @return int for the score/minimum value at this point in alpha-beta pruning algorithm
      **/
     private int minValue(BoardState root, int alpha, int beta, int depth){
         char xOrO;
@@ -124,7 +139,10 @@ public class IsolationGame {
         }
         for(int i=0;i<frontier.size();i++){
             move = frontier.poll();
-            BoardState child = new BoardState(root, move); //creating child with new coordinate position of computer
+            BoardState child = new BoardState(root, move, xOrO); //creating child with new coordinate position of computer
+            child.setFirstPlayer(root.getFirstPlayer());
+            child.setSecondPlayer(root.getSecondPlayer());
+            child.changeCoordinates(xOrO, (int) move.getX(), (int) move.getY());
             score = Math.min(score, maxValue(child, alpha, beta, depth)); //getting the minimum valued move that opponent human player can make
             if(score>=beta){
                 return score;
@@ -137,11 +155,13 @@ public class IsolationGame {
     /**
      * This method moves the computer's character around the board with the help of the alpha-beta algorithm deciding
      * the best move to make.
+     * @param currentState the current game state
      **/
     private void moveComputer(BoardState currentState){
         Point move;
         PriorityQueue<Point> frontier = currentState.makeChildren(computer);
         int bestScore = alphaBeta(currentState, depth);
+
         Point bestMove = frontier.peek();
         for(int i=0;i<frontier.size();i++){
             move = frontier.poll();
@@ -157,6 +177,7 @@ public class IsolationGame {
 
     /**
      * This method gets human player's input to move their X/O to another space.
+     * @param currentState the current game state
      */
     private void movePlayer(BoardState currentState){
         String move;
@@ -180,6 +201,14 @@ public class IsolationGame {
                     case 'F':
                     case 'G':
                     case 'H':
+                    case 'a':
+                    case 'b':
+                    case 'c':
+                    case 'd':
+                    case 'e':
+                    case 'f':
+                    case 'g':
+                    case 'h':
                         break;
                     default:
                         row = '-';
@@ -213,6 +242,7 @@ public class IsolationGame {
 
     /**
      * This method checks whether a space (such as "D3") is empty, and therefore available for human player to move to.
+     * @param currentState the current game state
      * @param move String that represents a space on the board
      * @return true if the space is empty("-"), false is otherwise
      */
@@ -226,26 +256,34 @@ public class IsolationGame {
         int rowIndex = 0;
         switch(row){
             case 'A':
+            case 'a':
                 break;
             case 'B':
+            case 'b':
                 rowIndex = 1;
                 break;
             case 'C':
+            case 'c':
                 rowIndex = 2;
                 break;
             case 'D':
+            case 'd':
                 rowIndex = 3;
                 break;
             case 'E':
+            case 'e':
                 rowIndex = 4;
                 break;
             case 'F':
+            case 'f':
                 rowIndex = 5;
                 break;
             case 'G':
+            case 'g':
                 rowIndex = 6;
                 break;
             case 'H':
+            case 'h':
                 rowIndex = 7;
                 break;
         }
@@ -255,14 +293,14 @@ public class IsolationGame {
         if(oldSpace[0]==playerMove[0]){ //if in the same column
             if(oldSpace[1]<playerMove[1]){ //if new space is over the old space
                 for(int i=1; i<=7;i++){
-                    if(oldSpace[1]+i>7) return true; //reached the limit without encountering fault
+                    if(oldSpace[1]+i>7) return false; //reached the limit without encountering new space
                     if(playerMove[1]==oldSpace[1]+i) return true; //reached new space without fault
                     if(!(currentState.getSpace(oldSpace[0], oldSpace[1]+i)).equals("-")) return false;
                 }
             }
             else{ //if the new space is under the old space
                 for(int i=1; i<=7;i++){
-                    if(oldSpace[1]-i>7) return true; //reached the limit without encountering fault
+                    if(oldSpace[1]-i>7) return false; //reached the limit without encountering new space
                     if(playerMove[1]==oldSpace[1]-i) return true; //reached new space without fault
                     if(!(currentState.getSpace(oldSpace[0], oldSpace[1]-i)).equals("-")) return false;
                 }
@@ -271,14 +309,14 @@ public class IsolationGame {
         else if(oldSpace[1]==playerMove[1]){ //if in the same row
             if(oldSpace[0]<playerMove[0]){ //if new space to the left of the old space
                 for(int i=1; i<=7;i++){
-                    if(oldSpace[0]+i>7) return true; //reached the limit without encountering fault
+                    if(oldSpace[0]+i>7) return false; //reached the limit without encountering new space
                     if(playerMove[0]==oldSpace[0]+i) return true; //reached new space without fault
                     if(!(currentState.getSpace(oldSpace[0]+i, oldSpace[1])).equals("-")) return false;
                 }
             }
             else{ //if the new space is to the right of the old space
                 for(int i=1; i<=7;i++){
-                    if(oldSpace[0]-i<0) return true; //reached the limit without encountering fault
+                    if(oldSpace[0]-i<0) return false; //reached the limit without encountering new space
                     if(playerMove[0]==oldSpace[0]-i) return true; //reached new space without fault
                     if(!(currentState.getSpace(oldSpace[0]-i, oldSpace[1])).equals("-")) return false;
                 }
@@ -286,28 +324,28 @@ public class IsolationGame {
         }
         else if(oldSpace[0]<playerMove[0] && oldSpace[1]<playerMove[1]){ //in the same neg diagonal, but to the right
             for(int i=1; i<=7;i++){
-                if((oldSpace[1]+i)>7 ||(oldSpace[0]+i)>7) return true; //reached the limit without encountering fault
+                if((oldSpace[1]+i)>7 ||(oldSpace[0]+i)>7) return false; //reached the limit without encountering new space
                 if(playerMove[0]==oldSpace[0]+i && playerMove[1]==oldSpace[1]+i) return true; //reached new space without fault
                 if(!(currentState.getSpace(oldSpace[0]+i, oldSpace[1]+i)).equals("-")) return false;
             }
         }
         else if(oldSpace[0]>playerMove[0] && oldSpace[1]>playerMove[1]){ //in the same neg diagonal, but to the left
             for(int i=1; i<=7;i++){
-                if((oldSpace[1]+i)>7 ||(oldSpace[0]+i)>7) return true; //reached the limit without encountering fault
+                if((oldSpace[1]-i)<0 ||(oldSpace[0]-i)<0) return false; //reached the limit without encountering new space
                 if(playerMove[0]==oldSpace[0]-i && playerMove[1]==oldSpace[1]-i) return true; //reached new space without fault
                 if(!(currentState.getSpace(oldSpace[0]-i, oldSpace[1]-i)).equals("-")) return false;
             }
         }
-        else if(oldSpace[0]==(playerMove[0]+1) && oldSpace[1]==(playerMove[1]-1)){ //in the same pos diagonal, but to the right
+        else if(oldSpace[0]<playerMove[0] && oldSpace[1]>playerMove[1]){ //in the same pos diagonal, but to the right
             for(int i=1; i<=7;i++){
-                if((oldSpace[1]-i)<0 ||(oldSpace[0]+i)>7) return true; //reached the limit without encountering fault
+                if((oldSpace[1]-i)<0 ||(oldSpace[0]+i)>7) return false; //reached the limit without encountering new space
                 if(playerMove[0]==oldSpace[0]+i && playerMove[1]==oldSpace[1]-i) return true; //reached new space without fault
                 if(!(currentState.getSpace(oldSpace[0]+i, oldSpace[1]-i)).equals("-")) return false;
             }
         }
-        else if(oldSpace[0]==(playerMove[0]-1) && oldSpace[1]==(playerMove[1]+1)){ //in the same pos diagonal, but to the left
+        else if(oldSpace[0]>playerMove[0] && oldSpace[1]<playerMove[1]){ //in the same pos diagonal, but to the left
             for(int i=1; i<=7;i++){
-                if((oldSpace[1]+i)>7||(oldSpace[0]-i)<0) return true; //reached the limit without encountering fault
+                if((oldSpace[1]+i)>7||(oldSpace[0]-i)<0) return false; //reached the limit without encountering new space
                 if(playerMove[0]==oldSpace[0]-i && playerMove[1]==oldSpace[1]+i) return true; //reached new space without fault
                 if(!(currentState.getSpace(oldSpace[0]-i, oldSpace[1]+i)).equals("-")) return false;
             }
@@ -389,17 +427,21 @@ public class IsolationGame {
 
     /**
      * Checks if human/computer player is trapped by '#' spaces
+     * @param currentState the current game state
      * @param player X if checking if first player is trapped, O if checking if second player is trapped
      * @return true if player is trapped, false if player is not
      */
     private boolean gameOver(BoardState currentState, char player){
+        String space;
         int[] coordinates;
+        int totalHashes = 0;
+        int actualSpaces = 0;
         switch(player){
             case 'X':
-                coordinates = currentState.getFirstPlayer();
+                coordinates = Arrays.copyOf(currentState.getFirstPlayer(), 2);
                 break;
             case 'O':
-                coordinates = currentState.getSecondPlayer();
+                coordinates = Arrays.copyOf(currentState.getSecondPlayer(), 2);
                 break;
             default:
                 coordinates = new int[2];
@@ -408,53 +450,67 @@ public class IsolationGame {
         boolean topWall = (coordinates[1]==0); // true if next to top wall, false if not
         boolean rightWall = (coordinates[0]==7); // true if next to right wall, false if not
         boolean bottomWall = (coordinates[1]==7); // true if next to bottom wall, false if not
-
-        int[] resetCoordinates = coordinates;
-
+        int[] resetCoordinates = Arrays.copyOf(coordinates, 2);
         if(!leftWall){ // if we're not at a left wall, we can check these spaces
             coordinates[0]--;
-            String space = currentState.getSpace(coordinates);
-            if(!space.equals("-")) return false;
+            space = currentState.getSpace(coordinates);
+            actualSpaces++;
+            if(!space.equals("-")) totalHashes++;
+            coordinates = Arrays.copyOf(resetCoordinates, 2);
             if(!topWall){
+                actualSpaces++;
+                coordinates[0]--;
                 coordinates[1]--;
                 space = currentState.getSpace(coordinates);
-                if(!space.equals("-")) return false;
+                if(!space.equals("-")) totalHashes++;
             }
+            coordinates = Arrays.copyOf(resetCoordinates, 2);
             if(!bottomWall){
-                coordinates[1] += 2;
+                actualSpaces++;
+                coordinates[0]--;
+                coordinates[1]++;
                 space = currentState.getSpace(coordinates);
-                if(!space.equals("-")) return false;
+                if(!space.equals("-")) totalHashes++;
             }
         }
-        coordinates = resetCoordinates;
+        coordinates = Arrays.copyOf(resetCoordinates, 2);
         if(!rightWall){ // if we're not at a right wall, we can check these spaces
+            actualSpaces++;
             coordinates[0]++;
             space = currentState.getSpace(coordinates);
-            if(!space.equals("-")) return false;
+            if(!space.equals("-")) totalHashes++;
+            coordinates = Arrays.copyOf(resetCoordinates, 2);
             if(!topWall){
+                actualSpaces++;
+                coordinates[0]++;
                 coordinates[1]--;
                 space = currentState.getSpace(coordinates);
-                if(!space.equals("-")) return false;
+                if(!space.equals("-")) totalHashes++;
             }
+            coordinates = Arrays.copyOf(resetCoordinates, 2);
             if(!bottomWall){
-                coordinates[1] += 2;
+                actualSpaces++;
+                coordinates[0]++;
+                coordinates[1]++;
                 space = currentState.getSpace(coordinates);
-                if(!space.equals("-")) return false;
+                if(!space.equals("-")) totalHashes++;
             }
         }
-        coordinates = resetCoordinates;
+        coordinates = Arrays.copyOf(resetCoordinates, 2);
         if(!topWall){ // if we're not at a top wall, we can check these spaces
+            actualSpaces++;
             coordinates[1]--;
             space = currentState.getSpace(coordinates);
-            if(!space.equals("-")) return false;
+            if(!space.equals("-")) totalHashes++;
         }
-        coordinates = resetCoordinates;
+        coordinates = Arrays.copyOf(resetCoordinates, 2);
         if(!bottomWall){ // if we're not at a bottom wall, we can check these spaces
-            coordinates[1] ++;
+            actualSpaces++;
+            coordinates[1]++;
             space = currentState.getSpace(coordinates);
-            if(!space.equals("-")) return false;
+            if(!space.equals("-")) totalHashes++;
         }
-        return false;
+        return actualSpaces == totalHashes;
     }
 
     /**
@@ -487,7 +543,7 @@ public class IsolationGame {
     }
 
     /**
-     *
+     * Runs the main portion of the game with the help of many methods, revolving around currentState.
      **/
     private void game() {
         BoardState currentState = new BoardState();
@@ -497,14 +553,14 @@ public class IsolationGame {
                 moveComputer(currentState); //method uses new frontier to change currentState, and computer moves first
                 printBoard(currentState);
                 if(gameOver(currentState, 'O')){ //CHECKS IF COMPUTER WON
-                    System.out.println("Game over!");
+                    System.out.println("\nGAME OVER: Computer won, better luck next time!");
                     printBoard(currentState);
                     break;
                 }
                 movePlayer(currentState); //human moves second
                 printBoard(currentState);
                 if(gameOver(currentState, 'X')){ //CHECKS IF HUMAN WON
-                    System.out.println("Game over!");
+                    System.out.println("\nGAME OVER: You won, congratulations!");
                     printBoard(currentState);
                     break;
                 }
@@ -513,14 +569,14 @@ public class IsolationGame {
                 movePlayer(currentState); //human moves first
                 printBoard(currentState);
                 if(gameOver(currentState, 'O')){ //CHECKS IF HUMAN WON
-                    System.out.println("Game over!");
+                    System.out.println("\nGAME OVER: You won, congratulations!");;
                     printBoard(currentState);
                     break;
                 }
                 moveComputer(currentState); //computer moves second
                 printBoard(currentState);
                 if(gameOver(currentState, 'X')){ //CHECKS IF COMPUTER WON
-                    System.out.println("Game over!");
+                    System.out.println("\nGAME OVER: Computer won, better luck next time!");
                     printBoard(currentState);
                     break;
                 }
