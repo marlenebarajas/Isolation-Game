@@ -33,7 +33,16 @@ public class BoardState {
         this.state = Arrays.copyOf(parent.getBoard(),parent.getBoard().length);
         this.firstPlayer = new int[]{0, 0};
         this.secondPlayer = new int[]{7, 7};
-        this.score = evaluate(move);
+        int opponentScore = 0;
+        switch(xOrO){
+            case 'X':
+                opponentScore = evaluate(this.secondPlayer[0], this.secondPlayer[1]);
+                break;
+            case 'O':
+                opponentScore = evaluate(this.firstPlayer[0], this.firstPlayer[1]);
+                break;
+        }
+        this.score = evaluate(move) - opponentScore;
         this.depth = parent.getDepth() + 1;
     }
 
@@ -107,9 +116,7 @@ public class BoardState {
      * This is similar to makeChildren() wherein we traverse every free space, but this time we are adding a "score"
      * value to it at each space. Directly adjacent free spaces are worth more.
      **/
-    int evaluate(Point coordinates) {
-        int x = (int) coordinates.getX();
-        int y = (int) coordinates.getY();
+    int evaluate(int x, int y){
         int index = (y*8) + x;
         int score = 0;
         int multiplier = 0;
@@ -213,6 +220,12 @@ public class BoardState {
             }
         }
         return score*multiplier;
+    }
+
+    int evaluate(Point coordinates) {
+        int x = (int) coordinates.getX();
+        int y = (int) coordinates.getY();
+        return evaluate(x, y);
     }
 
     /**
