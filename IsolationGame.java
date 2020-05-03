@@ -21,7 +21,7 @@ public class IsolationGame {
     //GAME LOGIC VARS
     private boolean computer = false; //is the computer the first player?
     private ArrayList<String> moves = new ArrayList<>();
-    private int depth = 4;
+    private int depth = 3;
     private int[] playerMove = {-1, -1};
 
     /**
@@ -548,9 +548,14 @@ public class IsolationGame {
      * Runs the main portion of the game with the help of many methods, revolving around currentState.
      **/
     private void game() {
+        int round = 0;
         BoardState currentState = new BoardState();
         printBoard(currentState);
         while(true){
+            round++;
+            if(round%5==0){
+                depth+=2; // increase the depth of alpha-beta pruning by 2 every 5 rounds
+            }
             if(computer){
                 moveComputer(currentState); //method uses new frontier to change currentState, and computer moves first
                 printBoard(currentState);
