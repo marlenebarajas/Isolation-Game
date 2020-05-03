@@ -33,16 +33,7 @@ public class BoardState {
         this.state = Arrays.copyOf(parent.getBoard(),parent.getBoard().length);
         this.firstPlayer = new int[]{0, 0};
         this.secondPlayer = new int[]{7, 7};
-        int opponentScore = 0;
-        switch(xOrO){
-            case 'X':
-                opponentScore = evaluate(this.secondPlayer[0], this.secondPlayer[1]);
-                break;
-            case 'O':
-                opponentScore = evaluate(this.firstPlayer[0], this.firstPlayer[1]);
-                break;
-        }
-        this.score = evaluate(move) - opponentScore;
+        this.score = 0;
         this.depth = parent.getDepth() + 1;
     }
 
@@ -110,6 +101,22 @@ public class BoardState {
         int x = coordinates[0];
         int y = coordinates[1];
         this.changeCoordinates(player, x, y);
+    }
+
+    int makeScore(char xOrO){
+        int opponentScore = 0;
+        int compScore = 0;
+        switch(xOrO){
+            case 'X':
+                opponentScore = evaluate(this.secondPlayer[0], this.secondPlayer[1]);
+                compScore = evaluate(this.firstPlayer[0], this.firstPlayer[1]);
+                break;
+            case 'O':
+                opponentScore = evaluate(this.firstPlayer[0], this.firstPlayer[1]);
+                compScore= evaluate(this.secondPlayer[0], this.secondPlayer[1]);
+                break;
+        }
+        return compScore - opponentScore;
     }
 
     /**
