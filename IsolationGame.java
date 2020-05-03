@@ -55,7 +55,9 @@ public class IsolationGame {
                 }
             }
         }
-        if(moves.size() > 17) printMoves();
+        if(moves.size() > 17){
+            printMoves();
+        }
     }
 
     /**
@@ -67,6 +69,7 @@ public class IsolationGame {
             if(i%2==1) System.out.print(longSpace+moves.get(i)); //first of the current move
             else System.out.print(space+moves.get(i)+"\n");
         }
+        System.out.println();
     }
 
     /**
@@ -163,13 +166,16 @@ public class IsolationGame {
         Point move;
         PriorityQueue<Point> frontier = currentState.makeChildren(computer);
         int bestScore = alphaBeta(currentState, depth);
-
         Point bestMove = frontier.peek();
         for(int i=0;i<frontier.size();i++){
             move = frontier.poll();
             if(currentState.evaluate(move)==bestScore) bestMove = move;
         }
         int[] coordinates = new int[2];
+        if(bestMove==null){
+            frontier = currentState.makeChildren(computer);
+            bestMove = frontier.poll();
+        }
         coordinates[0] = (int) bestMove.getX();
         coordinates[1] = (int) bestMove.getY();
         if(computer) currentState.changeCoordinates('X', coordinates); //if computer is X player
