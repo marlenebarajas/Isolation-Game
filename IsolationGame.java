@@ -107,6 +107,7 @@ public class IsolationGame {
             child.setFirstPlayer(root.getFirstPlayer());
             child.setSecondPlayer(root.getSecondPlayer());
             child.changeCoordinates(xOrO, (int) move.getX(), (int) move.getY());
+            child.makeScore(xOrO);
             score = Math.max(score, minValue(child, alpha, beta, depth)); //getting the minimum valued move that opponent human player can make
             if(score>=beta){
                 return score;
@@ -143,6 +144,7 @@ public class IsolationGame {
             child.setFirstPlayer(root.getFirstPlayer());
             child.setSecondPlayer(root.getSecondPlayer());
             child.changeCoordinates(xOrO, (int) move.getX(), (int) move.getY());
+            child.makeScore(xOrO);
             score = Math.min(score, maxValue(child, alpha, beta, depth)); //getting the minimum valued move that opponent human player can make
             if(score>=beta){
                 return score;
