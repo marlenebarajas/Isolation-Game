@@ -203,7 +203,7 @@ public class BoardState {
         }
         // POSSIBLE MOVES IN NEGATIVE DIAGONAL - RIGHT OF PLAYER
         start = index+9;
-        end = 63 - ((7-y)*9);
+        end = index + ((7-x)*9);
         if(x!=7 && y!=7){
             for (int i = start; i <= end; i+=9) {
                 if(i>55) break;
@@ -217,7 +217,7 @@ public class BoardState {
         // POSSIBLE MOVES IN NEGATIVE DIAGONAL - LEFT OF PLAYER
         start = index-9;
         if(x!=0 && y!=0){
-            for (int i = start; i >= 9; i-=9) {
+            for (int i = start; i > 9; i-=9) {
                 if(i<8) break;
                 if (getBoard()[i].equals("-")) {
                     if(i==start) multiplier++; // empty spots immediately surrounding are worth 3 times as much
@@ -244,8 +244,8 @@ public class BoardState {
     PriorityQueue<Point> makeChildren(boolean player) {
         PriorityQueue<Point> frontier = new PriorityQueue<>(new StateComparator());
         int[] startCoordinates;
-        int x = 0;
-        int y = 0;
+        int x;
+        int y;
         if (player) { //computer is X
             startCoordinates = getFirstPlayer();
             x = startCoordinates[0];
@@ -338,7 +338,7 @@ public class BoardState {
         }
         // POSSIBLE MOVES IN NEGATIVE DIAGONAL - RIGHT OF PLAYER
         start = index+9;
-        end = 63 - ((7-y)*9);
+        end = index + ((7-x)*9);
         loopCount = 1;
         if(x!=7 && y!=7){
             for (int i = start; i <= end; i+=9) {
@@ -354,7 +354,7 @@ public class BoardState {
         start = index-9;
         loopCount = 1;
         if(x!=0 && y!=0){
-            for (int i = start; i >= 9; i-=9) {
+            for (int i = start; i > 9; i-=9) {
                 if(i<8) break;
                 if (getBoard()[i].equals("-")) {
                     frontier.add(new Point(x-loopCount, y-loopCount));
